@@ -13,7 +13,52 @@ export interface DiagnosisEngineResult {
 const AI_TIMEOUT_MS = 2500; // 2.5 second strict SLA timeout
 
 /**
+ * Call NVIDIA API (OpenAI-compatible chat completions format)
+ * Default Model: meta/llama-3.3-70b-instruct
+ */
+async function callNvidiaApi(apiKey: string, prompt: string, model: string): Promise<string> {
+  const endpoint = process.env.NVIDIA_API_BASE_URL || 'https://integrate.api.nvidia.com/v1/chat/completions';
+  
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: model || 'meta/llama-3.3-70b-instruct',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 600
+    })
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`NVIDIA API HTTP ${res.status}: ${errText}`);
+  }
+
+  const json = await res.json();
+  return json?.choices?.[0]?.message?.content || '';
+}
+
+/**
+ * Call Anthropic Claude API
+ */
+async function callAnthropicApi(apiKey: string, prompt: string, model: string): Promise<string> {
+  const anthropic = new Anthropic({ apiKey });
+  const response = await anthropic.messages.create({
+    model: model || 'claude-3-5-sonnet-20241022',
+    max_tokens: 600,
+    temperature: 0.2,
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.content[0].type === 'text' ? response.content[0].text : '';
+}
+
+/**
  * Executes Tier 2 AI Diagnosis with strict SLA timeout & automatic Tier 1 fallback.
+ * Supports NVIDIA API (NVIDIA_API_KEY) and Anthropic Claude (ANTHROPIC_API_KEY).
  */
 export async function diagnoseFailureEvent(
   errorCode: string,
@@ -26,24 +71,26 @@ export async function diagnoseFailureEvent(
 
   // Step 1: Compute Tier 1 Deterministic Baseline
   const tier1 = diagnoseTier1(errorCode, errorDescription);
-  const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  // If no API key is set, immediately return Tier 1 Deterministic Result
-  if (!apiKey || apiKey.trim() === '' || apiKey === 'your-anthropic-api-key') {
+  const nvidiaKey = process.env.NVIDIA_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+  const hasKey = (nvidiaKey && nvidiaKey.trim() !== '' && !nvidiaKey.includes('your-')) ||
+                 (anthropicKey && anthropicKey.trim() !== '' && !anthropicKey.includes('your-'));
+
+  // If no AI key is configured, immediately return Tier 1 Deterministic Result
+  if (!hasKey) {
     return {
       category: tier1.category,
       playbook: tier1.defaultPlaybook,
       diagnosisSource: 'TIER_1_DETERMINISTIC',
       executionTimeMs: Date.now() - startTime,
-      reasoningNotes: `Tier 1 Rule Matched: ${tier1.ruleMatched}. (AI disabled or key missing)`
+      reasoningNotes: `Tier 1 Rule Matched: ${tier1.ruleMatched}. (AI disabled or keys missing)`
     };
   }
 
   // Step 2: Attempt Tier 2 AI Diagnosis with Strict SLA Timeout
   try {
-    const anthropic = new Anthropic({ apiKey });
-    const model = process.env.AI_MODEL || 'claude-3-5-sonnet-20241022';
-
     const prompt = `You are DunningPilot, an expert payment-recovery AI.
 Diagnose this failed payment event and generate an optimal recovery playbook.
 
@@ -69,30 +116,34 @@ Return ONLY valid JSON matching this exact structure with no extra text or markd
   }
 }`;
 
-    // Promise.race for strict 2500ms timeout
-    const aiPromise = anthropic.messages.create({
-      model,
-      max_tokens: 600,
-      temperature: 0.2,
-      messages: [{ role: 'user', content: prompt }]
-    });
+    // Select provider execution
+    const fetchAiResponse = async (): Promise<string> => {
+      if (nvidiaKey && nvidiaKey.trim() !== '' && !nvidiaKey.includes('your-')) {
+        const model = process.env.NVIDIA_MODEL || process.env.AI_MODEL || 'meta/llama-3.3-70b-instruct';
+        return await callNvidiaApi(nvidiaKey, prompt, model);
+      } else {
+        const model = process.env.AI_MODEL || 'claude-3-5-sonnet-20241022';
+        return await callAnthropicApi(anthropicKey!, prompt, model);
+      }
+    };
 
+    // Promise.race for strict 2500ms timeout
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('AI_TIMEOUT_EXCEEDED')), AI_TIMEOUT_MS)
     );
 
-    const response = await Promise.race([aiPromise, timeoutPromise]) as Anthropic.Messages.Message;
-
-    const contentText = response.content[0].type === 'text' ? response.content[0].text : '';
+    const contentText = await Promise.race([fetchAiResponse(), timeoutPromise]);
     const cleanJson = contentText.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsedPlaybook = JSON.parse(cleanJson) as AIPlaybook;
+
+    const providerName = nvidiaKey ? 'NVIDIA Llama 3.3 70B' : 'Claude 3.5 Sonnet';
 
     return {
       category: parsedPlaybook.category || tier1.category,
       playbook: parsedPlaybook,
       diagnosisSource: 'TIER_2_AI',
       executionTimeMs: Date.now() - startTime,
-      reasoningNotes: `Tier 2 AI Claude classification successful in ${Date.now() - startTime}ms.`
+      reasoningNotes: `Tier 2 AI (${providerName}) classification successful in ${Date.now() - startTime}ms.`
     };
   } catch (err: any) {
     const isTimeout = err?.message === 'AI_TIMEOUT_EXCEEDED';
