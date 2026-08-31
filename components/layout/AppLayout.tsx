@@ -99,6 +99,7 @@ export function AppLayout({ children, onResetDemo, isResetting }: AppLayoutProps
             <div className="bg-zinc-900/90 rounded-xl p-3 border border-zinc-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5 overflow-hidden">
                 {user.avatar_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={user.avatar_url}
                     alt={user.name}
