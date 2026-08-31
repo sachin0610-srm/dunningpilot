@@ -14,11 +14,13 @@ const AI_TIMEOUT_MS = 2500; // 2.5 second strict SLA timeout
 
 /**
  * Call NVIDIA API (OpenAI-compatible chat completions format)
- * Default Model: meta/llama-3.3-70b-instruct
+ * Default Model: meta/llama-3.2-11b-vision-instruct or meta/llama-3.2-90b-vision-instruct
  */
 async function callNvidiaApi(apiKey: string, prompt: string, model: string): Promise<string> {
   const endpoint = process.env.NVIDIA_API_BASE_URL || 'https://integrate.api.nvidia.com/v1/chat/completions';
   
+  const selectedModel = model || process.env.NVIDIA_MODEL || 'meta/llama-3.2-11b-vision-instruct';
+
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -26,7 +28,7 @@ async function callNvidiaApi(apiKey: string, prompt: string, model: string): Pro
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: model || 'meta/llama-3.3-70b-instruct',
+      model: selectedModel,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
       max_tokens: 600
@@ -119,7 +121,7 @@ Return ONLY valid JSON matching this exact structure with no extra text or markd
     // Select provider execution
     const fetchAiResponse = async (): Promise<string> => {
       if (nvidiaKey && nvidiaKey.trim() !== '' && !nvidiaKey.includes('your-')) {
-        const model = process.env.NVIDIA_MODEL || process.env.AI_MODEL || 'meta/llama-3.3-70b-instruct';
+        const model = process.env.NVIDIA_MODEL || process.env.AI_MODEL || 'meta/llama-3.2-11b-vision-instruct';
         return await callNvidiaApi(nvidiaKey, prompt, model);
       } else {
         const model = process.env.AI_MODEL || 'claude-3-5-sonnet-20241022';
@@ -136,7 +138,7 @@ Return ONLY valid JSON matching this exact structure with no extra text or markd
     const cleanJson = contentText.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsedPlaybook = JSON.parse(cleanJson) as AIPlaybook;
 
-    const providerName = nvidiaKey ? 'NVIDIA Llama 3.3 70B' : 'Claude 3.5 Sonnet';
+    const providerName = nvidiaKey ? 'NVIDIA Llama 3.2' : 'Claude 3.5 Sonnet';
 
     return {
       category: parsedPlaybook.category || tier1.category,
