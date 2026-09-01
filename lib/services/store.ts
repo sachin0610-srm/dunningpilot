@@ -4,6 +4,7 @@ import {
   FailureEvent, 
   RecoveryAttempt, 
   AuditLog, 
+  EnrichedAuditLog,
   RecoveryMetrics,
   FailureCategory,
   StoppedReason,
@@ -171,24 +172,89 @@ let MOCK_FAILURES: FailureEvent[] = [
 ];
 
 let MOCK_RECOVERY_ATTEMPTS: RecoveryAttempt[] = [];
-let MOCK_AUDIT_LOGS: AuditLog[] = [
+let INITIAL_MOCK_AUDIT_LOGS: AuditLog[] = [
+  {
+    id: 'log_init_06',
+    failure_event_id: 'fail_04',
+    action: 'STOPPING_RULE_ENFORCED',
+    diagnosis_source: 'TIER_1_DETERMINISTIC',
+    payload: {
+      rule: 'RULE_HARD_DECLINE_TERMINAL',
+      category: 'HARD_DECLINE',
+      reason: 'Card reported stolen/blocked. Retries strictly prohibited to preserve gateway reputation.',
+      allowedRetries: 0
+    },
+    created_at: new Date(Date.now() - 8 * 3600000 + 4000).toISOString()
+  },
+  {
+    id: 'log_init_05',
+    failure_event_id: 'fail_04',
+    action: 'CASE_CREATED',
+    diagnosis_source: 'TIER_1_DETERMINISTIC',
+    payload: { note: 'Razorpay webhook received: CARD_STOLEN_HARD_DECLINE' },
+    created_at: new Date(Date.now() - 8 * 3600000).toISOString()
+  },
+  {
+    id: 'log_init_04',
+    failure_event_id: 'fail_02',
+    action: 'TIER_2_AI_DIAGNOSED',
+    diagnosis_source: 'TIER_2_AI',
+    payload: {
+      provider: 'NVIDIA Llama 3.2',
+      executionTimeMs: 482,
+      playbookAction: 'CARD_UPDATE_EMAIL',
+      recommendedWindow: 'Immediate card update workflow sent to customer'
+    },
+    created_at: new Date(Date.now() - 5 * 3600000 + 6000).toISOString()
+  },
+  {
+    id: 'log_init_03',
+    failure_event_id: 'fail_02',
+    action: 'CASE_CREATED',
+    diagnosis_source: 'TIER_1_DETERMINISTIC',
+    payload: { note: 'Razorpay webhook received: EXPIRED_CARD' },
+    created_at: new Date(Date.now() - 5 * 3600000).toISOString()
+  },
+  {
+    id: 'log_init_02',
+    failure_event_id: 'fail_01',
+    action: 'TIER_2_AI_DIAGNOSED',
+    diagnosis_source: 'TIER_2_AI',
+    payload: {
+      provider: 'Claude 3.5 Sonnet',
+      executionTimeMs: 612,
+      playbookAction: 'GATEWAY_RETRY',
+      notes: 'Soft decline classified. High recovery probability in early morning salary window.'
+    },
+    created_at: new Date(Date.now() - 2 * 3600000 + 5000).toISOString()
+  },
   {
     id: 'log_init_01',
     failure_event_id: 'fail_01',
     action: 'CASE_CREATED',
     diagnosis_source: 'TIER_1_DETERMINISTIC',
-    payload: { note: 'Initial payment failure ingested from Razorpay webhook' },
+    payload: { note: 'Razorpay webhook received: INSUFFICIENT_FUNDS' },
     created_at: new Date(Date.now() - 2 * 3600000).toISOString()
   },
   {
-    id: 'log_init_02',
-    failure_event_id: 'fail_02',
+    id: 'log_init_07',
+    failure_event_id: 'fail_03',
     action: 'CASE_CREATED',
     diagnosis_source: 'TIER_1_DETERMINISTIC',
-    payload: { note: 'Initial payment failure ingested from Razorpay webhook' },
-    created_at: new Date(Date.now() - 5 * 3600000).toISOString()
+    payload: { note: 'Razorpay webhook received: PAYMENT_AUTHENTICATION_FAILED' },
+    created_at: new Date(Date.now() - 1 * 3600000).toISOString()
+  },
+  {
+    id: 'log_init_08',
+    failure_event_id: 'fail_05',
+    action: 'CASE_CREATED',
+    diagnosis_source: 'TIER_1_DETERMINISTIC',
+    payload: { note: 'Razorpay webhook received: GATEWAY_ERROR network timeout' },
+    created_at: new Date(Date.now() - 3 * 3600000).toISOString()
   }
 ];
+
+let MOCK_AUDIT_LOGS: AuditLog[] = [...INITIAL_MOCK_AUDIT_LOGS];
 
 export async function getFailureEvents(): Promise<FailureEvent[]> {
   const supabase = getSupabase();
@@ -196,9 +262,59 @@ export async function getFailureEvents(): Promise<FailureEvent[]> {
     const { data, error } = await supabase
       .from('failure_events')
       .select('*, subscription:subscriptions(*)');
-    if (!error && data) return data as FailureEvent[];
+    if (!error && data && data.length > 0) return data as FailureEvent[];
   }
   return MOCK_FAILURES;
+}
+
+export async function getAllAuditLogs(): Promise<EnrichedAuditLog[]> {
+  const supabase = getSupabase();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('audit_log')
+      .select('*, failure:failure_events(*, subscription:subscriptions(*))')
+      .order('created_at', { ascending: false });
+    
+    if (!error && data && data.length > 0) {
+      return data.map((item: any) => {
+        const failure = item.failure;
+        const sub = failure?.subscription;
+        return {
+          id: item.id,
+          failure_event_id: item.failure_event_id,
+          action: item.action,
+          diagnosis_source: item.diagnosis_source,
+          payload: item.payload,
+          created_at: item.created_at,
+          failure: failure,
+          customer_name: sub?.customer_name,
+          customer_email: sub?.customer_email,
+          amount: sub?.amount,
+          currency: sub?.currency,
+          plan_name: sub?.plan_name,
+          error_code: failure?.error_code,
+          failure_category: failure?.failure_category
+        };
+      });
+    }
+  }
+
+  // Fallback to in-memory enriched logs
+  return MOCK_AUDIT_LOGS.map(log => {
+    const failure = MOCK_FAILURES.find(f => f.id === log.failure_event_id);
+    const sub = failure ? (failure.subscription || MOCK_SUBSCRIPTIONS.find(s => s.id === failure.subscription_id)) : undefined;
+    return {
+      ...log,
+      failure,
+      customer_name: sub?.customer_name,
+      customer_email: sub?.customer_email,
+      amount: sub?.amount,
+      currency: sub?.currency || 'INR',
+      plan_name: sub?.plan_name,
+      error_code: failure?.error_code,
+      failure_category: failure?.failure_category
+    };
+  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 export async function getFailureEventById(id: string): Promise<{
@@ -485,5 +601,5 @@ export function resetDemoState() {
     f.ai_playbook = null;
   });
   MOCK_RECOVERY_ATTEMPTS = [];
-  MOCK_AUDIT_LOGS = MOCK_AUDIT_LOGS.filter(l => l.id.startsWith('log_init'));
+  MOCK_AUDIT_LOGS = [...INITIAL_MOCK_AUDIT_LOGS];
 }

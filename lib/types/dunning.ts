@@ -87,6 +87,17 @@ export interface AuditLog {
   created_at: string;
 }
 
+export interface EnrichedAuditLog extends AuditLog {
+  failure?: FailureEvent;
+  customer_name?: string;
+  customer_email?: string;
+  amount?: number;
+  currency?: string;
+  plan_name?: string;
+  error_code?: string;
+  failure_category?: FailureCategory;
+}
+
 export interface RecoveryMetrics {
   total_failed_count: number;
   total_failed_revenue: number;
