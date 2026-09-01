@@ -1,21 +1,95 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --bg-main: #09090b;
+    --text-main: #f4f4f5;
+  }
+
+  html.light {
+    --bg-main: #f8fafc;
+    --text-main: #0f172a;
+  }
+
   body {
-    background-color: #09090b;
-    color: #f4f4f5;
+    background-color: var(--bg-main);
+    color: var(--text-main);
     font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
-/* Custom scrollbar for dark theme */
+/* Light Mode Overrides for Zinc Elements */
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.light aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light main {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-zinc-950 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-zinc-900\/90,
+html.light .bg-zinc-900\/60,
+html.light .bg-zinc-900 {
+  background-color: #ffffff !important;
+}
+
+html.light .border-zinc-800,
+html.light .border-zinc-850,
+html.light .border-zinc-800\/60,
+html.light .border-zinc-800\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .text-zinc-100,
+html.light .text-zinc-200 {
+  color: #0f172a !important;
+}
+
+html.light .text-zinc-400,
+html.light .text-zinc-500 {
+  color: #64748b !important;
+}
+
+html.light .bg-zinc-800 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light .bg-zinc-800\/40:hover {
+  background-color: #f8fafc !important;
+}
+
+html.light .divide-zinc-800\/60 > * {
+  border-color: #e2e8f0 !important;
+}
+
+html.light select,
+html.light input,
+html.light textarea {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #18181b;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -23,6 +97,14 @@
   border-radius: 3px;
 }
 
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

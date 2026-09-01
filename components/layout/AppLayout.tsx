@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { BrandLogo } from '@/components/ui/BrandLogo';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { 
-  ShieldAlert, 
   LayoutDashboard, 
   ListFilter, 
   RotateCcw, 
@@ -34,7 +35,7 @@ export function AppLayout({ children, onResetDemo, isResetting }: AppLayoutProps
   }, [user, isLoading, pathname, router]);
 
   if (isLoading) {
-    return <LoadingScreen message="Verifying Auth Session &amp; System Integrity..." />;
+    return <LoadingScreen message="Verifying Auth Session & System Integrity..." />;
   }
 
   if (!user && pathname !== '/login') {
@@ -48,24 +49,13 @@ export function AppLayout({ children, onResetDemo, isResetting }: AppLayoutProps
   ];
 
   return (
-    <div className="min-h-screen flex bg-zinc-950 text-zinc-100 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="min-h-screen flex bg-zinc-950 text-zinc-100 dark:bg-zinc-950 dark:text-zinc-100 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-300">
       {/* Sidebar Navigation */}
-      <aside className="w-64 border-r border-zinc-850 bg-zinc-950 flex flex-col justify-between p-4 sticky top-0 h-screen shrink-0">
+      <aside className="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col justify-between p-4 sticky top-0 h-screen shrink-0">
         <div>
           {/* Logo & Brand Header */}
-          <div className="flex items-center gap-3 px-3 py-4 border-b border-zinc-800/60 mb-6">
-            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm shadow-emerald-500/10">
-              <ShieldAlert className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-base tracking-tight text-zinc-100">DunningPilot</span>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
-                  v1.0
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 font-medium">Payment Recovery Engine</p>
-            </div>
+          <div className="px-2 py-3 border-b border-zinc-800/80 mb-6">
+            <BrandLogo size="md" showTagline />
           </div>
 
           {/* Navigation Links */}
@@ -77,9 +67,9 @@ export function AppLayout({ children, onResetDemo, isResetting }: AppLayoutProps
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/60 shadow-sm'
+                      ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/80 shadow-sm shadow-emerald-500/5'
                       : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
                   }`}
                 >
@@ -92,8 +82,11 @@ export function AppLayout({ children, onResetDemo, isResetting }: AppLayoutProps
         </div>
 
         {/* User Profile & Footer Actions */}
-        <div className="space-y-4 pt-4 border-t border-zinc-800/60">
+        <div className="space-y-3 pt-4 border-t border-zinc-800/80">
           
+          {/* Theme Toggle Button */}
+          <ThemeToggle showLabel className="w-full justify-center" />
+
           {/* User Session Profile Badge */}
           {user && (
             <div className="bg-zinc-900/90 rounded-xl p-3 border border-zinc-800 flex items-center justify-between">
@@ -131,17 +124,12 @@ export function AppLayout({ children, onResetDemo, isResetting }: AppLayoutProps
             <button
               onClick={onResetDemo}
               disabled={isResetting}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-zinc-400 hover:text-zinc-200 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-all disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-zinc-200 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 transition-all disabled:opacity-50"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin text-amber-400' : ''}`} />
               {isResetting ? 'Resetting Demo...' : 'Reset Demo State'}
             </button>
           )}
-
-          <div className="px-1 text-[11px] text-zinc-400 flex items-center justify-between font-mono">
-            <span>Solo Hackathon MVP</span>
-            <span className="text-emerald-400 font-semibold">Google Auth</span>
-          </div>
         </div>
       </aside>
 

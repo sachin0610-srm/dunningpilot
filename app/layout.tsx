@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/context";
+import { ThemeProvider } from "@/lib/theme/context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DunningPilot | Subscription Payment Recovery System",
+  title: "DunningPilot | Recover More. Automate Smarter.",
   description: "Diagnose subscription payment failures, route intelligent recovery workflows, and enforce hard stopping rules with Razorpay & AI.",
 };
 
@@ -28,10 +29,12 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100 dark:bg-zinc-950 dark:text-zinc-100">
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

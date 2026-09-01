@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
-import { ShieldAlert, Zap, Lock, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { BrandLogo } from '@/components/ui/BrandLogo';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { Zap, Lock, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function LoginPage() {
   const { user, signInWithGoogle, demoSignIn, isLoading } = useAuth();
@@ -33,6 +35,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-zinc-100 font-sans relative overflow-hidden select-none">
       
+      {/* Top Right Theme Toggle */}
+      <div className="absolute top-6 right-6 z-20">
+        <ThemeToggle />
+      </div>
+
       {/* Background ambient gradient glow */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-72 h-72 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
@@ -41,18 +48,11 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md bg-zinc-900/90 border border-zinc-800 rounded-3xl p-8 shadow-2xl space-y-8 backdrop-blur-xl">
         
         {/* Header Branding */}
-        <div className="flex flex-col items-center text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-zinc-950 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/10">
-            <ShieldAlert className="w-7 h-7" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-              Welcome to DunningPilot
-            </h1>
-            <p className="text-xs text-zinc-400 mt-1">
-              Automated Payment Recovery &amp; Failure Routing Engine
-            </p>
-          </div>
+        <div className="flex flex-col items-center text-center space-y-4">
+          <BrandLogo size="lg" showTagline className="justify-center" />
+          <p className="text-xs text-zinc-400">
+            Intelligent Payment Recovery &amp; Subscription Failure Routing
+          </p>
         </div>
 
         {/* Feature Pill Highlights */}
@@ -111,7 +111,7 @@ export default function LoginPage() {
             className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-zinc-950 hover:bg-zinc-850 text-zinc-300 hover:text-zinc-100 font-semibold text-xs border border-zinc-800 transition-all"
           >
             <Zap className="w-4 h-4 text-amber-400" />
-            Instant Demo Sign-In (Hackathon Preview)
+            Instant Demo Sign-In (Sandbox Mode)
           </button>
         </div>
 
