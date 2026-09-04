@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local demo & recording scripts (do not commit)
+DEMO_SCRIPT.md
+*.webp
